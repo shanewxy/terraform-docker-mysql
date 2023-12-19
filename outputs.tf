@@ -1,42 +1,75 @@
-#
-# Contextual output
-#
+locals {
+  hosts = [
+    format("%s.%s.svc.%s", local.resource_name, local.namespace, local.domain_suffix)
+  ]
 
-output "walrus_project_name" {
-  value       = try(local.context["project"]["name"], null)
-  description = "The name of project where deployed in Walrus."
-}
-
-output "walrus_project_id" {
-  value       = try(local.context["project"]["id"], null)
-  description = "The id of project where deployed in Walrus."
-}
-
-output "walrus_environment_name" {
-  value       = try(local.context["environment"]["name"], null)
-  description = "The name of environment where deployed in Walrus."
-}
-
-output "walrus_environment_id" {
-  value       = try(local.context["environment"]["id"], null)
-  description = "The id of environment where deployed in Walrus."
-}
-
-output "walrus_resource_name" {
-  value       = try(local.context["resource"]["name"], null)
-  description = "The name of resource where deployed in Walrus."
-}
-
-output "walrus_resource_id" {
-  value       = try(local.context["resource"]["id"], null)
-  description = "The id of resource where deployed in Walrus."
+  endpoints = flatten([
+    for c in local.hosts : formatlist("%s:3306", c)
+  ])
 }
 
 #
-# Submodule output
+# Orchestration
 #
 
-output "submodule" {
-  value       = module.submodule.message
-  description = "The message from submodule."
+output "context" {
+  description = "The input context, a map, which is used for orchestration."
+  value       = var.context
+}
+
+output "refer" {
+  description = "The refer, a map, including hosts, ports and account, which is used for dependencies or collaborations."
+  sensitive   = true
+  value = {
+    schema = "docker:mysql"
+    params = {
+      selector  = local.labels
+      name      = local.fullname
+      hosts     = local.hosts
+      ports     = [3306]
+      endpoints = local.endpoints
+    }
+  }
+}
+
+#
+# Reference
+#
+
+output "connection" {
+  description = "The connection, a string combined host and port, might be a comma separated string or a single string."
+  value       = join(",", local.endpoints)
+}
+
+output "address" {
+  description = "The address, a string only has host, might be a comma separated string or a single string."
+  value       = join(",", local.hosts)
+}
+
+output "port" {
+  description = "The port of the MySQL service."
+  value       = 3306
+}
+
+output "database" {
+  description = "The name of MySQL database to access."
+  value       = local.database
+}
+
+output "username" {
+  description = "The username of the account to access the database."
+  value       = local.username
+}
+
+output "password" {
+  value       = local.password
+  description = "The password of the account to access the database."
+  sensitive   = true
+}
+
+## UI display
+
+output "endpoints" {
+  description = "The endpoints, a list of string combined host and port."
+  value       = local.endpoints
 }
