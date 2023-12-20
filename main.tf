@@ -35,16 +35,11 @@ data "docker_network" "network" {
   }
 }
 
-resource "docker_volume" "example" {
-  name   = "example"
-  driver = "local"
-}
-
 locals {
   volume_refer_database_data = {
     schema = "docker:localvolumeclaim"
     params = {
-      name = docker_volume.example.name
+      name = "mysql"
     }
   }
 
@@ -61,11 +56,6 @@ resource "random_string" "name_suffix" {
   upper   = false
 }
 
-locals {
-  name     = join("-", [local.resource_name, random_string.name_suffix.result])
-  fullname = join("-", [local.namespace, local.name])
-}
-
 module "this" {
   source = "github.com/walrus-catalog-sandbox/terraform-docker-containerservice?ref=69ae83a"
 
@@ -75,8 +65,33 @@ module "this" {
   }
 
   containers = [
+    #
+    # Init Container
+    #
+    var.seeding.type == "url" ? {
+      profile = "init"
+      image   = "alpine"
+      execute = {
+        working_dir = "/"
+        command = [
+          "sh",
+          "-c",
+          "test -f /docker-entrypoint-initdb.d/init.sql || wget -c -S -O /docker-entrypoint-initdb.d/init.sql ${var.seeding.url.location}"
+        ]
+      }
+      mounts = [
+        {
+          path   = "/docker-entrypoint-initdb.d"
+          volume = "init"
+        },
+      ]
+    } : null,
+
+    #
+    # Run Container
+    #
     {
-      image     = join(":", ["mysql", var.engine_version])
+      image     = join(":", ["bitnami/mysql", var.engine_version])
       resources = var.resources
       envs = [
         {
@@ -100,14 +115,18 @@ module "this" {
         {
           path         = "/var/lib/mysql"
           volume_refer = local.volume_refer_database_data # persistent
-        }
+        },
+        var.seeding.type == "url" ? {
+          path   = "/docker-entrypoint-initdb.d"
+          volume = "init"
+        } : null,
       ]
-      files = [
+      files = var.seeding.type == "text" ? [
         {
           path    = "/docker-entrypoint-initdb.d/init.sql"
           content = try(var.seeding.text.content, null)
         }
-      ]
+      ] : null
       ports = [
         {
           internal = 3306
@@ -115,25 +134,19 @@ module "this" {
           protocol = "tcp"
         }
       ]
+      checks = [
+        {
+          type     = "execute"
+          delay    = 10
+          timeout  = 5
+          interval = 15
+          execute = {
+            command = [
+              "/opt/bitnami/scripts/mysql/healthcheck.sh"
+            ]
+          }
+        }
+      ]
     }
   ]
-}
-
-#
-# Seed Database.
-#
-
-resource "byteset_pipeline" "init_sql" {
-  count = try(var.seeding.type, null) == "url" ? 1 : 0
-
-  source = {
-    address = try(var.seeding.url.location, null)
-  }
-
-  destination = {
-    address = format("mysql://root:%s@tcp(127.0.0.1:3306)/%s",
-      local.password,
-      local.database,
-    )
-  }
 }

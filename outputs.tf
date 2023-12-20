@@ -24,7 +24,6 @@ output "refer" {
     schema = "docker:mysql"
     params = {
       selector  = local.labels
-      name      = local.fullname
       hosts     = local.hosts
       ports     = [3306]
       endpoints = local.endpoints

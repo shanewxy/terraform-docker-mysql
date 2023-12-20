@@ -30,7 +30,6 @@ Please read our [contributing guide](./docs/CONTRIBUTING.md) if you're intereste
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0 |
-| <a name="requirement_byteset"></a> [byteset](#requirement\_byteset) | >= 0.1.0 |
 | <a name="requirement_docker"></a> [docker](#requirement\_docker) | >= 3.0.2 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.5.1 |
 
@@ -38,7 +37,6 @@ Please read our [contributing guide](./docs/CONTRIBUTING.md) if you're intereste
 
 | Name | Version |
 |------|---------|
-| <a name="provider_byteset"></a> [byteset](#provider\_byteset) | >= 0.1.0 |
 | <a name="provider_docker"></a> [docker](#provider\_docker) | >= 3.0.2 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.5.1 |
 
@@ -52,8 +50,6 @@ Please read our [contributing guide](./docs/CONTRIBUTING.md) if you're intereste
 
 | Name | Type |
 |------|------|
-| [byteset_pipeline.init_sql](https://registry.terraform.io/providers/seal-io/byteset/latest/docs/resources/pipeline) | resource |
-| [docker_volume.example](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs/resources/volume) | resource |
 | [random_string.name_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
 | [docker_network.network](https://registry.terraform.io/providers/kreuzwerker/docker/latest/docs/data-sources/network) | data source |
 
@@ -65,7 +61,7 @@ Please read our [contributing guide](./docs/CONTRIBUTING.md) if you're intereste
 | <a name="input_database"></a> [database](#input\_database) | Specify the database name. The database name must be 2-64 characters long and start with any lower letter, combined with number, or symbols: - \_. <br>The database name cannot be MySQL forbidden keyword. | `string` | `"mydb"` | no |
 | <a name="input_engine_version"></a> [engine\_version](#input\_engine\_version) | Specify the deployment engine version. | `string` | `"8.0"` | no |
 | <a name="input_infrastructure"></a> [infrastructure](#input\_infrastructure) | Specify the infrastructure information for deploying.<br><br>Examples:<pre>infrastructure:<br>  network_id: string<br>  domain_suffix: string, optional</pre> | <pre>object({<br>    network_id    = string<br>    domain_suffix = optional(string, "cluster.local")<br>  })</pre> | n/a | yes |
-| <a name="input_password"></a> [password](#input\_password) | Specify the account password. The password must be 8-32 characters long and start with any letter, number, or symbols: ! # $ % ^ & * ( ) \_ + - =.<br>If not specified, it will generate a random password. | `string` | `null` | no |
+| <a name="input_password"></a> [password](#input\_password) | Specify the account password. The password must be 8-32 characters long and start with any letter, number, or symbols: ! # $ % ^ & * ( ) \_ + - =.<br>If not specified, it will use the first 16 characters of the username md5 hash value. | `string` | `null` | no |
 | <a name="input_resources"></a> [resources](#input\_resources) | Specify the computing resources.<br><br>Examples:<pre>resources:<br>  cpu: number, optional<br>  memory: number, optional       # in megabyte</pre> | <pre>object({<br>    cpu    = optional(number, 0.25)<br>    memory = optional(number, 1024)<br>  })</pre> | <pre>{<br>  "cpu": 0.25,<br>  "memory": 1024<br>}</pre> | no |
 | <a name="input_seeding"></a> [seeding](#input\_seeding) | Specify the configuration to seed the database at first-time creating.<br><br>Seeding increases the startup time waiting and also needs proper permission, <br>like root account.<br><br>Examples:<pre>seeding:<br>  type: none/url/text<br>  url:                           <br>    location: string<br>  text:                          <br>    content: string</pre> | <pre>object({<br>    type = optional(string, "none")<br>    url = optional(object({<br>      location = string<br>    }))<br>    text = optional(object({<br>      content = string<br>    }))<br>  })</pre> | `{}` | no |
 | <a name="input_username"></a> [username](#input\_username) | Specify the account username. The username must be 2-16 characters long and start with lower letter, combined with number, or symbol: \_.<br>The username cannot be MySQL forbidden keyword and root.<br>See https://www.alibabacloud.com/help/en/rds/developer-reference/api-rds-2014-08-15-createaccount. | `string` | `"rdsuser"` | no |
