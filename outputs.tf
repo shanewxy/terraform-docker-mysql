@@ -1,11 +1,17 @@
 locals {
   hosts = [
-    format("%s.%s.svc.%s", local.resource_name, local.namespace, local.domain_suffix)
+    format("%s.%s.svc.%s", local.master_name, local.namespace, local.domain_suffix)
   ]
+  hosts_readonly = local.architecture == "replication" ? [
+    for i in range(0, var.replication_readonly_replicas) : format("%s-slave-%d.%s.svc.%s", local.resource_name, i, local.namespace, local.domain_suffix)
+  ] : []
 
   endpoints = flatten([
     for c in local.hosts : formatlist("%s:3306", c)
   ])
+  endpoints_readonly = [
+    for c in(local.hosts_readonly != null ? local.hosts_readonly : []) : format("%s:3306", c)
+  ]
 }
 
 #
@@ -23,10 +29,15 @@ output "refer" {
   value = {
     schema = "docker:mysql"
     params = {
-      selector  = local.labels
-      hosts     = local.hosts
-      ports     = [3306]
-      endpoints = local.endpoints
+      selector           = local.labels
+      hosts              = local.hosts
+      hosts_readonly     = local.hosts_readonly
+      ports              = [3306]
+      endpoints          = local.endpoints
+      endpoints_readonly = local.endpoints_readonly
+      database           = local.database
+      username           = local.username
+      password           = nonsensitive(local.password)
     }
   }
 }
@@ -40,9 +51,19 @@ output "connection" {
   value       = join(",", local.endpoints)
 }
 
+output "connection_readonly" {
+  description = "The readonly connection, a string combined host and port, might be a comma separated string or a single string."
+  value       = join(",", local.endpoints_readonly)
+}
+
 output "address" {
   description = "The address, a string only has host, might be a comma separated string or a single string."
   value       = join(",", local.hosts)
+}
+
+output "address_readonly" {
+  description = "The readonly address, a string only has host, might be a comma separated string or a single string."
+  value       = join(",", local.hosts_readonly)
 }
 
 output "port" {
@@ -71,4 +92,9 @@ output "password" {
 output "endpoints" {
   description = "The endpoints, a list of string combined host and port."
   value       = local.endpoints
+}
+
+output "endpoints_readonly" {
+  description = "The readonly endpoints, a list of string combined host and port."
+  value       = local.endpoints_readonly
 }

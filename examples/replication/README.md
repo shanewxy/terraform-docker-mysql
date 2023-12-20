@@ -1,6 +1,6 @@
-# Standalone Example
+# Replication Example
 
-Deploy MySQL service in standalone architecture by root moudle.
+Deploy MySQL service in replication architecture by root moudle.
 
 ```bash
 # setup infra

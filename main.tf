@@ -18,6 +18,10 @@ locals {
     "walrus.seal.io/environment-name" = local.environment_name
     "walrus.seal.io/resource-name"    = local.resource_name
   }
+
+  master_name = format("%s-master", local.resource_name)
+
+  architecture = coalesce(var.architecture, "standalone")
 }
 
 #
@@ -56,8 +60,23 @@ resource "random_string" "name_suffix" {
   upper   = false
 }
 
-module "this" {
+module "master" {
   source = "github.com/walrus-catalog-sandbox/terraform-docker-containerservice?ref=69ae83a"
+
+  context = {
+    project = {
+      name = local.project_name
+      id   = local.project_id
+    }
+    environment = {
+      name = local.environment_name
+      id   = local.environment_id
+    }
+    resource = {
+      name = local.master_name
+      id   = local.resource_id
+    }
+  }
 
   infrastructure = {
     domain_suffix = local.domain_suffix
@@ -109,7 +128,19 @@ module "this" {
         {
           name  = "MYSQL_ROOT_PASSWORD"
           value = local.password
-        }
+        },
+        {
+          name  = "MYSQL_REPLICATION_MODE"
+          value = "master"
+        },
+        {
+          name  = "MYSQL_REPLICATION_USER"
+          value = "my_repl_user"
+        },
+        {
+          name  = "MYSQL_REPLICATION_PASSWORD"
+          value = local.password
+        },
       ]
       mounts = [
         {
@@ -130,7 +161,89 @@ module "this" {
       ports = [
         {
           internal = 3306
-          external = 3306
+          protocol = "tcp"
+        }
+      ]
+      checks = [
+        {
+          type     = "execute"
+          delay    = 10
+          timeout  = 5
+          interval = 15
+          execute = {
+            command = [
+              "/opt/bitnami/scripts/mysql/healthcheck.sh"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+
+module "slave" {
+  count = local.architecture == "replication" ? var.replication_readonly_replicas : 0
+
+  source = "github.com/walrus-catalog-sandbox/terraform-docker-containerservice?ref=69ae83a"
+
+  context = {
+    project = {
+      name = local.project_name
+      id   = local.project_id
+    }
+    environment = {
+      name = local.environment_name
+      id   = local.environment_id
+    }
+    resource = {
+      name = format("%s-slave-%d", local.resource_name, count.index)
+      id   = local.resource_id
+    }
+  }
+
+  infrastructure = {
+    network_id = data.docker_network.network.id
+  }
+
+  containers = [
+    #
+    # Run Container
+    #
+    {
+      image     = join(":", ["bitnami/mysql", var.engine_version])
+      resources = var.resources
+      envs = [
+        {
+          name  = "MYSQL_MASTER_ROOT_PASSWORD"
+          value = local.password
+        },
+        {
+          name  = "MYSQL_REPLICATION_MODE"
+          value = "slave"
+        },
+        {
+          name  = "MYSQL_REPLICATION_USER"
+          value = "my_repl_user"
+        },
+        {
+          name  = "MYSQL_REPLICATION_PASSWORD"
+          value = local.password
+        },
+        {
+          name  = "MYSQL_MASTER_HOST"
+          value = format("%s.%s.svc.%s", local.master_name, local.namespace, local.domain_suffix)
+
+        },
+      ]
+      mounts = [
+        {
+          path         = "/var/lib/mysql"
+          volume_refer = local.volume_refer_database_data # persistent
+        }
+      ]
+      ports = [
+        {
+          internal = 3306
           protocol = "tcp"
         }
       ]

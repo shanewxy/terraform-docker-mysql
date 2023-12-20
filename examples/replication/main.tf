@@ -34,6 +34,9 @@ module "this" {
     network_id = docker_network.example.id
   }
 
+  architecture                  = "replication"
+  replication_readonly_replicas = 3
+
   engine_version = "8.0"
 
   resources = {
@@ -42,9 +45,37 @@ module "this" {
   }
 
   seeding = {
-    type = "url"
-    url = {
-      location = "https://raw.githubusercontent.com/seal-io/terraform-provider-byteset/main/byteset/testdata/mysql-lg.sql"
+    type = "text"
+    text = {
+      content = <<-EOF
+-- company table
+DROP TABLE IF EXISTS company;
+CREATE TABLE company
+(
+    id      INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name    TEXT NOT NULL,
+    age     INT  NOT NULL,
+    address CHAR(50),
+    salary  NUMERIC
+);
+
+
+-- company data
+INSERT INTO company (name, age, address, salary)
+VALUES ('Paul', 32, 'California', 20000.00);
+INSERT INTO company (name, age, address, salary)
+VALUES ('Allen', 25, 'Texas', 15000.00);
+INSERT INTO company (name, age, address, salary)
+VALUES ('Teddy', 23, 'Norway', 20000.00);
+INSERT INTO company (name, age, address, salary)
+VALUES ('Mark', 25, 'Rich-Mond ', 65000.00);
+INSERT INTO company (name, age, address, salary)
+VALUES ('David', 27, 'Texas', 85000.00);
+INSERT INTO company (name, age, address, salary)
+VALUES ('Kim', 22, 'South-Hall', 45000.00);
+INSERT INTO company (name, age, address, salary)
+VALUES ('James', 24, 'Houston', 10000.00);
+EOF
     }
   }
 }

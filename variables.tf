@@ -49,6 +49,30 @@ EOF
 # Deployment Fields
 #
 
+variable "architecture" {
+  description = <<-EOF
+Specify the deployment architecture, select from standalone or replication.
+EOF
+  type        = string
+  default     = "standalone"
+  validation {
+    condition     = var.architecture == "" || contains(["standalone", "replication"], var.architecture)
+    error_message = "Invalid architecture"
+  }
+}
+
+variable "replication_readonly_replicas" {
+  description = <<-EOF
+Specify the number of read-only replicas under the replication deployment.
+EOF
+  type        = number
+  default     = 1
+  validation {
+    condition     = var.replication_readonly_replicas == 0 || contains([1, 3, 5], var.replication_readonly_replicas)
+    error_message = "Invalid number of read-only replicas"
+  }
+}
+
 variable "engine_version" {
   description = <<-EOF
 Specify the deployment engine version.

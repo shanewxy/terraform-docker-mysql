@@ -52,6 +52,34 @@ components:
             colSpan: 12
             group: Basic
             order: 2
+        architecture:
+          title: Architecture
+          type: string
+          description: |
+            Specify the deployment architecture, select from standalone or replication.
+          default: standalone
+          enum:
+          - standalone
+          - replication
+          nullable: true
+          x-walrus-ui:
+            group: Basic
+            order: 3
+        replication_readonly_replicas:
+          title: Replication Readonly Replicas
+          type: number
+          description: |
+            Specify the number of read-only replicas under the replication deployment.
+          default: 1
+          enum:
+          - 1
+          - 3
+          - 5
+          nullable: true
+          x-walrus-ui:
+            group: Basic
+            order: 4
+            showIf: architecture=replication
         engine_version:
           title: Engine Version
           type: string
