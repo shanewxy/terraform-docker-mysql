@@ -52,14 +52,6 @@ locals {
   password = coalesce(var.password, substr(md5(local.username), 0, 16))
 }
 
-# create the name with a random suffix.
-
-resource "random_string" "name_suffix" {
-  length  = 10
-  special = false
-  upper   = false
-}
-
 module "master" {
   source = "github.com/walrus-catalog-sandbox/terraform-docker-containerservice?ref=69ae83a"
 
@@ -144,7 +136,7 @@ module "master" {
       ]
       mounts = [
         {
-          path         = "/var/lib/mysql"
+          path         = "/bitnami/mysql/data"
           volume_refer = local.volume_refer_database_data # persistent
         },
         var.seeding.type == "url" ? {
@@ -234,12 +226,6 @@ module "slave" {
           value = format("%s.%s.svc.%s", local.master_name, local.namespace, local.domain_suffix)
 
         },
-      ]
-      mounts = [
-        {
-          path         = "/var/lib/mysql"
-          volume_refer = local.volume_refer_database_data # persistent
-        }
       ]
       ports = [
         {
