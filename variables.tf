@@ -43,6 +43,9 @@ EOF
     network_id    = string
     domain_suffix = optional(string, "cluster.local")
   })
+  default = {
+    network_id = "local-walrus"
+  }
 }
 
 #
